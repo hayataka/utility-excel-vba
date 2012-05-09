@@ -156,7 +156,7 @@ Dim col As Long
 
     row = activateTopCellBySearchedShape(aWkSt, aSh)
     col = activateLeftCellBySearchedShape(aWkSt, aSh)
-    
+    Application.ScreenUpdating = True
     aWkSt.Cells(row, col).Activate
 ' aSh.Select
 End Sub
