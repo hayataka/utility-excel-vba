@@ -1,0 +1,200 @@
+Public Sub searchInShapeAllSheet()
+    Const ALL_SHEET As Boolean = True
+    searchInShapeInternal (ALL_SHEET)
+End Sub
+
+
+Public Sub searchInShapeActiveSheet()
+    Const ACTIVE_SHEET As Boolean = False
+    searchInShapeInternal (ACTIVE_SHEET)
+End Sub
+
+
+'********************************************************************************
+' Bookの中の図形中テキスト文字を検索し、その左上のセルに移動する
+' 1回の検索毎に、文字列が存在する次の図形に移動する
+' 全て検索が終えたら、その次の検索からまた最初から実施する
+' debug実行時にはApplication.ScreenUpdating = False をコメントアウトしてください
+'********************************************************************************
+Private Sub searchInShapeInternal(ByVal isAllSheet As Boolean)
+    
+On Error GoTo errorHandler
+    
+    '前回結果を保持するためのitem
+    Static lastSearchWord As String
+    Static searched As Collection
+    
+    '今回検索キー
+    Dim key As String
+    
+    '実施有無のチェック
+    Const StringData As Integer = 2 'Application.InputBoxメソッドのみ受け取り可能なType引数に設定
+    key = Application.InputBox(prompt:="検索する文字を入力してください。", Default:=lastSearchWord, Type:=StringData)
+    If (key = "False") Or (key = "") Then
+        GoTo clearEnd
+    End If
+    
+    Application.ScreenUpdating = False  'ActivateしてSelectionしている関係上、画面描画を止めておく
+    
+    Dim activatedSt As String
+    activatedSt = ActiveSheet.Name
+    
+    
+    '前回と検索キーが異なれば前回検索結果を削除する
+    If lastSearchWord <> key Then
+        Set searched = Nothing
+        Set searched = New Collection
+    End If
+    lastSearchWord = key
+    
+    Dim wkBook As Excel.Workbook
+    Set wkBook = ActiveWorkbook
+    Dim wkSt As Excel.Worksheet
+    If isAllSheet Then
+        Dim stCnt As Integer
+        For stCnt = 1 To wkBook.Worksheets.Count
+            Set wkSt = wkBook.Worksheets(stCnt)
+            Dim i As Integer
+            For i = 1 To wkSt.shapes.Count
+                If isExistWordsInShapeRecursive(wkSt, key, searched, wkSt.shapes(i)) Then
+                    Application.ScreenUpdating = True
+                    wkSt.Activate
+                    GoTo foundEndSub
+                End If
+            Next i
+        Next stCnt
+    Else
+        Set wkSt = ActiveSheet
+        Dim j As Integer
+        For j = 1 To wkSt.shapes.Count
+            If isExistWordsInShapeRecursive(wkSt, key, searched, wkSt.shapes(j)) Then
+                Application.ScreenUpdating = True
+                wkSt.Activate
+                GoTo foundEndSub
+            End If
+        Next j
+    End If
+    
+    wkBook.Sheets(activatedSt).Activate
+    MsgBox "最後まで検索しましたがありませんでした。"
+    
+    
+    GoTo clearEnd
+errorHandler:
+    MsgBox Err.Description
+clearEnd:
+    lastSearchWord = ""
+    Set searched = Nothing
+foundEndSub:
+    '今回分は保持したまま次回に持ち越し
+    Application.ScreenUpdating = True
+    If Not wkSt Is Nothing Then
+        Set wkSt = Nothing
+    End If
+    If Not wkBook Is Nothing Then
+        Set wkBook = Nothing
+    End If
+End Sub
+
+
+
+
+
+
+
+
+
+
+Private Function isExistWordsInShapeRecursive(ByRef aWkSt As Excel.Worksheet _
+, ByVal aKey As String, ByRef aSearched As Collection, ByRef aSh As Shape) As Boolean
+
+    isExistWordsInShapeRecursive = False
+    
+    If aSh.Type = msoGroup Then
+        Dim i As Integer
+        For i = 1 To aSh.GroupItems.Count
+            If isExistWordsInShapeRecursive(aWkSt, aKey, aSearched, aSh.GroupItems.Item(i)) Then
+                isExistWordsInShapeRecursive = True
+                GoTo logicEnd
+            End If
+        Next i
+    Else
+          '大文字小文字を無視して、テキストが存在したかどうか
+        If InStr(1, aSh.TextFrame.Characters.Text, aKey, vbTextCompare) > 0 Then
+            '既に検索した事があるかどうかの確認
+            Dim stName As String
+            stName = aWkSt.Name
+            Dim topLeft As String
+            topLeft = Str(aSh.Top) & ":" & Str(aSh.Left)
+            
+            On Error Resume Next
+            aSearched.Add Item:="重複チェック", key:=stName & ":" & topLeft
+            If Err.Number = 0 Then
+                '今回初の場合は処理終了 該当図形の左上をactivate
+                activateTopLeftCellbySearchedShape aWkSt, aSh
+                isExistWordsInShapeRecursive = True
+                GoTo logicEnd
+            End If
+            Err.Clear
+            On Error GoTo 0 'エラーの発生しうるロジック終了。かつクリア
+        End If
+    End If
+
+    GoTo logicEnd
+logicEnd:
+End Function
+
+
+
+'検索文字列が存在した図形のTopLeftCellに当たるセルをactive化する
+'単純にTopLeftCellを使用しなかったのは、グループ化された図形（再帰含む）を
+'考慮に入れたため
+Private Sub activateTopLeftCellbySearchedShape(ByRef aWkSt As Excel.Worksheet, ByRef aSh As Shape)
+
+Dim row As Long 'Activate予定のCells(row,col)
+Dim col As Long
+
+    row = activateTopCellBySearchedShape(aWkSt, aSh)
+    col = activateLeftCellBySearchedShape(aWkSt, aSh)
+    
+    aWkSt.Cells(row, col).Activate
+' aSh.Select
+End Sub
+
+Private Function activateTopCellBySearchedShape(ByRef aWkSt As Excel.Worksheet, ByRef aSh As Shape) As Long
+    activateTopCellBySearchedShape = 1  '初期値
+
+    Const CHECK_COL As Long = 200
+    Const MAX_ROW As Long = 20000   '無限Loop抑止
+    
+    Dim target As Long
+    target = aSh.Top
+
+    Dim i As Long
+    For i = 1 To MAX_ROW
+        If aWkSt.Cells(i, CHECK_COL).Top > target Then
+            activateTopCellBySearchedShape = i - 1 '一つ上のセルを選択させたい
+            Exit For
+        End If
+    Next i
+End Function
+
+
+Private Function activateLeftCellBySearchedShape(ByRef aWkSt As Excel.Worksheet, ByRef aSh As Shape) As Long
+    activateLeftCellBySearchedShape = 1  '初期値
+
+    Const CHECK_ROW As Long = 1000
+    Const MAX_COL As Long = 250   '無限Loop抑止
+    
+    Dim target As Long
+    target = aSh.Left
+
+    Dim i As Long
+    For i = 1 To MAX_COL
+        If aWkSt.Cells(CHECK_ROW, i).Left > target Then
+            activateLeftCellBySearchedShape = i - 1 '一つ上のセルを選択させたい
+            Exit For
+        End If
+    Next i
+
+End Function
