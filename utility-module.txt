@@ -198,3 +198,128 @@ Private Function activateLeftCellBySearchedShape(ByRef aWkSt As Excel.Worksheet,
     Next i
 
 End Function
+
+Public Sub mergeCells()
+    ' セルの結合・非結合の変更
+    If Selection.mergeCells = True Then
+        Selection.mergeCells = False
+    Else
+        Selection.mergeCells = True
+    End If
+
+End Sub
+
+Public Sub changeFontColor()
+' 選択セルの色を変える
+' 色はF2で表示されるオブジェクトブラウザで
+' 定義されている色定数ColorConstantsに対応
+' これ以上やる場合はColorIndexを使う
+    If Selection.Font.Color = vbRed Then
+        Selection.Font.Color = vbBlack
+    ElseIf Selection.Font.Color = vbBlack Then
+        Selection.Font.Color = vbBlue
+    ElseIf Selection.Font.Color = vbBlue Then
+'        Selection.Font.Color = vbCyan
+'    ElseIf Selection.Font.Color = vbCyan Then
+'        Selection.Font.Color = vbGreen
+'    ElseIf Selection.Font.Color = vbGreen Then
+'        Selection.Font.Color = vbMagenta
+'    ElseIf Selection.Font.Color = vbMagenta Then
+'        Selection.Font.Color = vbYellow
+'    ElseIf Selection.Font.Color = vbYellow Then
+        Selection.Font.Color = vbRed
+    Else
+        Selection.Font.Color = vbBlack
+    End If
+End Sub
+
+Public Sub changeInteriorColor()
+' 選択セルの背景色を変える
+' 色はF2で表示されるオブジェクトブラウザで
+' 定義されている色定数ColorConstantsに対応
+' これ以上やる場合はColorIndexを使う
+    If Selection.Interior.Color = vbRed Then
+        Selection.Interior.Color = vbBlack
+    ElseIf Selection.Interior.Color = vbBlack Then
+        Selection.Interior.Color = vbBlue
+    ElseIf Selection.Interior.Color = vbBlue Then
+'        Selection.interior.Color = vbCyan
+'    ElseIf Selection.interior.Color = vbCyan Then
+'        Selection.interior.Color = vbGreen
+'    ElseIf Selection.interior.Color = vbGreen Then
+'        Selection.interior.Color = vbMagenta
+'    ElseIf Selection.interior.Color = vbMagenta Then
+        Selection.Interior.Color = vbYellow
+    ElseIf Selection.Interior.Color = vbYellow Then
+        Selection.Interior.Color = vbRed
+    Else
+        Selection.Interior.Color = vbBlack
+    End If
+
+End Sub
+
+
+Public Sub changeHorizontalAlignment()
+'セル内での配置を調整
+    With Selection
+        If .HorizontalAlignment = xlCenter Then
+            .HorizontalAlignment = xlRight
+        ElseIf .HorizontalAlignment = xlRight Then
+            .HorizontalAlignment = xlLeft
+        ElseIf .HorizontalAlignment = xlLeft Then
+            .HorizontalAlignment = xlCenter
+        End If
+    End With
+End Sub
+
+Public Sub changeVerticalAlignment()
+'セル内での配置を調整
+    With Selection
+        If .VerticalAlignment = xlBottom Then
+            .VerticalAlignment = xlTop
+        ElseIf .VerticalAlignment = xlTop Then
+            .VerticalAlignment = xlCenter
+        ElseIf .VerticalAlignment = xlCenter Then
+            .VerticalAlignment = xlBottom
+        End If
+        
+    End With
+End Sub
+
+
+
+Public Sub ヘッダ用罫線引き()
+
+    Selection.Borders(xlDiagonalDown).LineStyle = xlNone
+    Selection.Borders(xlDiagonalUp).LineStyle = xlNone
+    With Selection.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .ColorIndex = xlAutomatic
+    End With
+    With Selection.Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .ColorIndex = xlAutomatic
+    End With
+    With Selection.Borders(xlEdgeBottom)
+        .LineStyle = xlDouble
+        .Weight = xlThick
+        .ColorIndex = xlAutomatic
+    End With
+    With Selection.Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .ColorIndex = xlAutomatic
+    End With
+    
+    '複数セル選択ではない場合にエラーが発生するので(真ん中に縦線)Error時でも処理を継続させます
+    On Error Resume Next
+    With Selection.Borders(xlInsideVertical)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .ColorIndex = xlAutomatic
+    End With
+    On Error GoTo 0
+
+End Sub
