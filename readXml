@@ -1,0 +1,89 @@
+Option Explicit
+
+Public Sub test()
+On Error GoTo ErrorHandler
+' 参照設定 Microsoft XMLv6.0
+Dim xdoc As MSXML2.DOMDocument60
+Set xdoc = New MSXML2.DOMDocument60
+ xdoc.async = False
+ xdoc.Load ("C:\Users\vias\Desktop\settings.xml")
+ If xdoc.parseError.ErrorCode <> 0 Then
+    Call MsgBox("err:" & xdoc.parseError.reason)
+    Exit Sub
+ End If
+ 
+Dim nd As MSXML2.IXMLDOMNode
+Set nd = xdoc.SelectSingleNode("//ROOT/charset")
+ 
+Dim nds As MSXML2.IXMLDOMNodeList
+Set nds = xdoc.SelectNodes("//ROOT/mappings/mapping")
+ 
+ Dim cnd As MSXML2.IXMLDOMNode
+ Dim ndCol  As MSXML2.IXMLDOMNode
+ Dim ndTbs As MSXML2.IXMLDOMNodeList
+For Each nd In nds   ' mapping
+   Set ndCol = nd.SelectSingleNode("colIndex")
+   Debug.Print ndCol.Text
+   Set ndTbs = nd.SelectNodes("tables/table")
+   Dim ndT As MSXML2.IXMLDOMNode
+   For Each ndT In ndTbs
+    Debug.Print ndT.Text
+   Next
+Next
+    GoTo LogicEnd
+ErrorHandler:
+    MsgBox Err.Description
+LogicEnd:
+End Sub
+
+
+
+
+
+
+
+
+
+----------------------
+xml data
+---------------------
+<?xml version="1.0" encoding="Shift_JIS"?>
+
+<ROOT>
+	<charset>
+	<!-- あああ-->
+	あああああああ</charset>
+	<mappings>
+		<mapping>
+			<!-- a-->
+			<colIndex>2</colIndex>
+			<tables>
+				<!-- hogehoge-->
+				<table>M_1</table>
+				<!-- fugafuga-->
+				<table>M_2   <!--ttttttttttttttttttttt --></table>
+			</tables>
+		</mapping>
+		<mapping>
+			<colIndex>3</colIndex>
+			<tables>
+				<table>M_3</table>
+				<table>M_4</table>
+			</tables>
+		</mapping>
+	</mappings>
+
+
+</ROOT>
+
+
+----------------
+print
+----------------
+2
+M_1
+M_2
+3
+M_3
+M_4
+
